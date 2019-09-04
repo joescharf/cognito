@@ -12,6 +12,7 @@ import (
 )
 
 var CFG = &AppClientConfig{}
+var cognitoID = ""
 
 func init() {
 	r, err := envy.MustGet("REGION")
@@ -35,8 +36,9 @@ func TestNewAppClient(t *testing.T) {
 
 func TestAuthenticateUserPassword(t *testing.T) {
 	// Setup the credentials from Environment:
-	u, err := envy.MustGet("SUCCESS_USERNAME")
-	p, err := envy.MustGet("SUCCESS_PASSWORD")
+	u, err := envy.MustGet("USERNAME")
+	p, err := envy.MustGet("PASSWORD")
+	cid, err := envy.MustGet("COGNITO_ID")
 	assert.Nil(t, err, "Could not get credentials from .env")
 
 	credentials := &Credentials{
@@ -47,14 +49,14 @@ func TestAuthenticateUserPassword(t *testing.T) {
 		Username: u + "fail",
 		Password: p + "fail",
 	}
+	cognitoID = cid
 
 	client, err := NewAppClient(CFG)
 	assert.Nil(t, err, "Error not nil")
 
 	response, err := client.AuthenticateUserPassword(credentials)
 	assert.Nil(t, err, "Error not nil")
-	assert.Equal(t, "Bearer", response.TokenType)
-	// spew.Dump(response)
+	assert.Equal(t, cognitoID, response)
 
 	response, err = client.AuthenticateUserPassword(failCredentials)
 	if err != nil {

@@ -20,9 +20,9 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/cognitoidentityprovider"
 
+	// "github.com/davecgh/go-spew/spew"
 	"github.com/dgrijalva/jwt-go"
 	"github.com/lestrrat-go/jwx/jwk"
-	// "github.com/davecgh/go-spew/spew"
 	// log "github.com/sirupsen/logrus"
 )
 
@@ -287,7 +287,7 @@ func (c *AppClient) ParseAndVerifyJWT(t string) (*jwt.Token, error) {
 	return nil, err
 }
 
-func (c *AppClient) AuthenticateUserPassword(credentials *Credentials) (token Token, err error) {
+func (c *AppClient) AuthenticateUserPassword(credentials *Credentials) (cognitoID string, err error) {
 	username := aws.String(credentials.Username)
 	password := aws.String(credentials.Password)
 	clientID := aws.String(c.ClientID)
@@ -306,22 +306,22 @@ func (c *AppClient) AuthenticateUserPassword(credentials *Credentials) (token To
 		Region: aws.String(c.Region),
 	})
 	if err != nil {
-		return token, err
+		return
 	}
 
-	// Do the auth
+	// Do the auth and get the token
 	cip := cognitoidentityprovider.New(ses)
-	response, err := cip.InitiateAuth(params)
+	token, err := cip.InitiateAuth(params)
 	if err != nil {
-		return token, err
+		return
 	}
 
-	// Successful authentication, copy the token values
-	token.AccessToken = *response.AuthenticationResult.AccessToken
-	token.IDToken = *response.AuthenticationResult.IdToken
-	token.RefreshToken = *response.AuthenticationResult.RefreshToken
-	token.TokenType = *response.AuthenticationResult.TokenType
-	token.ExpiresIn = int(*response.AuthenticationResult.ExpiresIn)
-	return token, err
+	// Now we need to get the cognito id from the IDToken Claims (sub)
+	idToken, err := c.ParseAndVerifyJWT(*token.AuthenticationResult.IdToken)
+	if idClaims, ok := idToken.Claims.(jwt.MapClaims); ok && idToken.Valid {
+		cognitoID = idClaims["sub"].(string)
+	}
+
+	return cognitoID, err
 
 }
