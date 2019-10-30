@@ -287,6 +287,21 @@ func (c *AppClient) ParseAndVerifyJWT(t string) (*jwt.Token, error) {
 	return nil, err
 }
 
+func (c *AppClient) NewCIP() (cip *cognitoidentityprovider.CognitoIdentityProvider, err error) {
+
+	// Setup the AWS session:
+	ses, err := session.NewSession(&aws.Config{
+		Region: aws.String(c.Region),
+	})
+	if err != nil {
+		return cip, err
+	}
+
+	// Create the CognitoIdentityProvider Client
+	cip = cognitoidentityprovider.New(ses)
+	return cip, err
+}
+
 func (c *AppClient) AuthenticateUserPassword(credentials *Credentials) (cognitoID string, err error) {
 	username := aws.String(credentials.Username)
 	password := aws.String(credentials.Password)
