@@ -3,7 +3,7 @@ module github.com/joescharf/cognito
 go 1.13
 
 require (
-	github.com/aws/aws-sdk-go v1.23.14
+	github.com/aws/aws-sdk-go v1.25.22
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/gobuffalo/envy v1.7.0
 	github.com/lestrrat-go/jwx v0.9.0

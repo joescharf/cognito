@@ -316,16 +316,13 @@ func (c *AppClient) AuthenticateUserPassword(credentials *Credentials) (cognitoI
 		ClientId: clientID,
 	}
 
-	// Setup the AWS session:
-	ses, err := session.NewSession(&aws.Config{
-		Region: aws.String(c.Region),
-	})
+	// Create the CognitoIdentityProvider
+	cip, err := c.NewCIP()
 	if err != nil {
 		return
 	}
 
-	// Do the auth and get the token
-	cip := cognitoidentityprovider.New(ses)
+	// Authenticate
 	token, err := cip.InitiateAuth(params)
 	if err != nil {
 		return
