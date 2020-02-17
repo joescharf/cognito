@@ -360,6 +360,8 @@ func (c *AppClient) AuthenticateUserPassword(credentials *Credentials) (cognitoI
 // Requires a AWS session with developer credentials
 func (c *AppClient) RegisterNewUserEmailPass(username, password string) (cognitoID string, err error) {
 
+	var input *cognitoidentityprovider.AdminCreateUserInput
+
 	emailAt := &cognitoidentityprovider.AttributeType{
 		Name:  aws.String("email"),
 		Value: aws.String(username),
@@ -370,14 +372,14 @@ func (c *AppClient) RegisterNewUserEmailPass(username, password string) (cognito
 	}
 
 	if password != "" {
-		input := &cognitoidentityprovider.AdminCreateUserInput{
+		input = &cognitoidentityprovider.AdminCreateUserInput{
 			Username:          aws.String(username),
 			TemporaryPassword: aws.String(password),
 			UserPoolId:        &c.UserPoolID,
 			UserAttributes:    []*cognitoidentityprovider.AttributeType{emailAt, emailVerifiedAt},
 		}
 	} else {
-		input := &cognitoidentityprovider.AdminCreateUserInput{
+		input = &cognitoidentityprovider.AdminCreateUserInput{
 			Username:       aws.String(username),
 			UserPoolId:     &c.UserPoolID,
 			UserAttributes: []*cognitoidentityprovider.AttributeType{emailAt, emailVerifiedAt},
