@@ -4,9 +4,8 @@ import (
 	"os"
 	"testing"
 
+	"github.com/davecgh/go-spew/spew"
 	"github.com/stretchr/testify/assert"
-
-	"github.com/aws/aws-sdk-go/aws/awserr"
 
 	// "github.com/davecgh/go-spew/spew"
 	"github.com/gobuffalo/envy"
@@ -35,35 +34,56 @@ func TestNewAppClient(t *testing.T) {
 	assert.Equal(t, CFG.ClientID, client.ClientID)
 }
 
-func TestAuthenticateUserPassword(t *testing.T) {
+// func TestAuthenticateUserPassword(t *testing.T) {
+// 	// Setup the credentials from Environment:
+// 	u, err := envy.MustGet("USERNAME")
+// 	p, err := envy.MustGet("PASSWORD")
+// 	cid, err := envy.MustGet("COGNITO_ID")
+// 	assert.Nil(t, err, "Could not get credentials from .env")
+
+// 	credentials := &Credentials{
+// 		Username: u,
+// 		Password: p,
+// 	}
+// 	failCredentials := &Credentials{
+// 		Username: u + "fail",
+// 		Password: p + "fail",
+// 	}
+// 	cognitoID = cid
+
+// 	client, err := NewAppClient(CFG)
+// 	assert.Nil(t, err, "Error not nil")
+
+// 	response, err := client.AuthenticateUserPassword(credentials)
+// 	assert.Nil(t, err, "Error not nil")
+// 	assert.Equal(t, cognitoID, response)
+
+// 	response, err = client.AuthenticateUserPassword(failCredentials)
+// 	if err != nil {
+// 		if awsErr, ok := err.(awserr.Error); ok {
+// 			assert.Equal(t, awsErr.Message(), "User does not exist.")
+// 		}
+// 	}
+
+// }
+
+func TestRegisterNewUserEmailPass(t *testing.T) {
 	// Setup the credentials from Environment:
-	u, err := envy.MustGet("USERNAME")
-	p, err := envy.MustGet("PASSWORD")
-	cid, err := envy.MustGet("COGNITO_ID")
+	u, err := envy.MustGet("NEW_USERNAME")
+	p, err := envy.MustGet("NEW_PASSWORD")
 	assert.Nil(t, err, "Could not get credentials from .env")
 
 	credentials := &Credentials{
 		Username: u,
 		Password: p,
 	}
-	failCredentials := &Credentials{
-		Username: u + "fail",
-		Password: p + "fail",
-	}
-	cognitoID = cid
 
 	client, err := NewAppClient(CFG)
 	assert.Nil(t, err, "Error not nil")
 
-	response, err := client.AuthenticateUserPassword(credentials)
+	out, err := client.RegisterNewUserEmailPass(credentials)
 	assert.Nil(t, err, "Error not nil")
-	assert.Equal(t, cognitoID, response)
 
-	response, err = client.AuthenticateUserPassword(failCredentials)
-	if err != nil {
-		if awsErr, ok := err.(awserr.Error); ok {
-			assert.Equal(t, awsErr.Message(), "User does not exist.")
-		}
-	}
+	spew.Dump(out)
 
 }

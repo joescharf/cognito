@@ -17,6 +17,7 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/client"
+	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/cognitoidentityprovider"
 
@@ -28,6 +29,8 @@ import (
 
 // AppClient is an interface for working with AWS Cognito
 type AppClient struct {
+	AWSAccessKey             string
+	AWSSecretAccessKey       string
 	Region                   string
 	UserPoolID               string
 	ClientID                 string
@@ -46,15 +49,17 @@ type AppClient struct {
 
 // AppClientConfig defines required info to build a new AppClient
 type AppClientConfig struct {
-	Region            string                 `json:"region"`
-	PoolID            string                 `json:"poolId"`
-	Domain            string                 `json:"domain"`
-	ClientID          string                 `json:"clientId"`
-	ClientSecret      string                 `json:"clientSecret"`
-	RedirectURI       string                 `json:"redirectUri"`
-	LogoutRedirectURI string                 `json:"logoutRedirectUri"`
-	TraceContext      context.Context        `json:"-"`
-	AWSClientTracer   func(c *client.Client) `json:"-"`
+	AWSAccessKey       string
+	AWSSecretAccessKey string
+	Region             string                 `json:"region"`
+	PoolID             string                 `json:"poolId"`
+	Domain             string                 `json:"domain"`
+	ClientID           string                 `json:"clientId"`
+	ClientSecret       string                 `json:"clientSecret"`
+	RedirectURI        string                 `json:"redirectUri"`
+	LogoutRedirectURI  string                 `json:"logoutRedirectUri"`
+	TraceContext       context.Context        `json:"-"`
+	AWSClientTracer    func(c *client.Client) `json:"-"`
 }
 
 // Token defines a token struct for JSON responses from Cognito TOKEN endpoint
@@ -76,13 +81,15 @@ type Credentials struct {
 func NewAppClient(cfg *AppClientConfig) (*AppClient, error) {
 	var err error
 	c := &AppClient{
-		Region:            cfg.Region,
-		UserPoolID:        cfg.PoolID,
-		ClientID:          cfg.ClientID,
-		ClientSecret:      cfg.ClientSecret,
-		Domain:            cfg.Domain,
-		RedirectURI:       cfg.RedirectURI,
-		LogoutRedirectURI: cfg.LogoutRedirectURI,
+		AWSAccessKey:       cfg.AWSAccessKey,
+		AWSSecretAccessKey: cfg.AWSSecretAccessKey,
+		Region:             cfg.Region,
+		UserPoolID:         cfg.PoolID,
+		ClientID:           cfg.ClientID,
+		ClientSecret:       cfg.ClientSecret,
+		Domain:             cfg.Domain,
+		RedirectURI:        cfg.RedirectURI,
+		LogoutRedirectURI:  cfg.LogoutRedirectURI,
 	}
 
 	if c.ClientSecret != "" {
@@ -289,10 +296,20 @@ func (c *AppClient) ParseAndVerifyJWT(t string) (*jwt.Token, error) {
 
 func (c *AppClient) NewCIP() (cip *cognitoidentityprovider.CognitoIdentityProvider, err error) {
 
-	// Setup the AWS session:
-	ses, err := session.NewSession(&aws.Config{
-		Region: aws.String(c.Region),
-	})
+	var ses *session.Session
+
+	// Setup the AWS session with or without AWS credentials:
+	if c.AWSAccessKey != "" && c.AWSSecretAccessKey != "" {
+		credentials := credentials.NewStaticCredentials(c.AWSAccessKey, c.AWSSecretAccessKey, "")
+		ses, err = session.NewSession(&aws.Config{
+			Credentials: credentials,
+			Region:      aws.String(c.Region),
+		})
+	} else {
+		ses, err = session.NewSession(&aws.Config{
+			Region: aws.String(c.Region),
+		})
+	}
 	if err != nil {
 		return cip, err
 	}
@@ -335,5 +352,66 @@ func (c *AppClient) AuthenticateUserPassword(credentials *Credentials) (cognitoI
 	}
 
 	return cognitoID, err
+
+}
+
+// RegisterNewUserEmailPass creates a new user in cognito based on a username (email) and password
+// If password is null, then cognito will create the temporary password for you.
+// Requires a AWS session with developer credentials
+func (c *AppClient) RegisterNewUserEmailPass(username, password string) (cognitoID string, err error) {
+
+	emailAt := &cognitoidentityprovider.AttributeType{
+		Name:  aws.String("email"),
+		Value: aws.String(username),
+	}
+	emailVerifiedAt := &cognitoidentityprovider.AttributeType{
+		Name:  aws.String("email_verified"),
+		Value: aws.String("true"),
+	}
+
+	if password != "" {
+		input := &cognitoidentityprovider.AdminCreateUserInput{
+			Username:          aws.String(username),
+			TemporaryPassword: aws.String(password),
+			UserPoolId:        &c.UserPoolID,
+			UserAttributes:    []*cognitoidentityprovider.AttributeType{emailAt, emailVerifiedAt},
+		}
+	} else {
+		input := &cognitoidentityprovider.AdminCreateUserInput{
+			Username:       aws.String(username),
+			UserPoolId:     &c.UserPoolID,
+			UserAttributes: []*cognitoidentityprovider.AttributeType{emailAt, emailVerifiedAt},
+		}
+	}
+
+	// Create the CognitoIdentityProvider
+	cip, err := c.NewCIP()
+	if err != nil {
+		return
+	}
+	out, err := cip.AdminCreateUser(input)
+	if err != nil {
+		return
+	}
+	cognitoID = *out.User.Username
+
+	return
+}
+
+func (c *AppClient) DeleteUser(username string) error {
+
+	input := &cognitoidentityprovider.AdminDeleteUserInput{
+		Username:   aws.String(username),
+		UserPoolId: &c.UserPoolID,
+	}
+
+	// Create the CognitoIdentityProvider
+	cip, err := c.NewCIP()
+	if err != nil {
+		return err
+	}
+	_, err = cip.AdminDeleteUser(input)
+
+	return err
 
 }
