@@ -21,10 +21,8 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/cognitoidentityprovider"
 
-	// "github.com/davecgh/go-spew/spew"
 	"github.com/dgrijalva/jwt-go"
 	"github.com/lestrrat-go/jwx/jwk"
-	// log "github.com/sirupsen/logrus"
 )
 
 // AppClient is an interface for working with AWS Cognito
@@ -352,68 +350,5 @@ func (c *AppClient) AuthenticateUserPassword(credentials *Credentials) (cognitoI
 	}
 
 	return cognitoID, err
-
-}
-
-// RegisterNewUserEmailPass creates a new user in cognito based on a username (email) and password
-// If password is null, then cognito will create the temporary password for you.
-// Requires a AWS session with developer credentials
-func (c *AppClient) RegisterNewUserEmailPass(username, password string) (cognitoID string, err error) {
-
-	var input *cognitoidentityprovider.AdminCreateUserInput
-
-	emailAt := &cognitoidentityprovider.AttributeType{
-		Name:  aws.String("email"),
-		Value: aws.String(username),
-	}
-	emailVerifiedAt := &cognitoidentityprovider.AttributeType{
-		Name:  aws.String("email_verified"),
-		Value: aws.String("true"),
-	}
-
-	if password != "" {
-		input = &cognitoidentityprovider.AdminCreateUserInput{
-			Username:          aws.String(username),
-			TemporaryPassword: aws.String(password),
-			UserPoolId:        &c.UserPoolID,
-			UserAttributes:    []*cognitoidentityprovider.AttributeType{emailAt, emailVerifiedAt},
-		}
-	} else {
-		input = &cognitoidentityprovider.AdminCreateUserInput{
-			Username:       aws.String(username),
-			UserPoolId:     &c.UserPoolID,
-			UserAttributes: []*cognitoidentityprovider.AttributeType{emailAt, emailVerifiedAt},
-		}
-	}
-
-	// Create the CognitoIdentityProvider
-	cip, err := c.NewCIP()
-	if err != nil {
-		return
-	}
-	out, err := cip.AdminCreateUser(input)
-	if err != nil {
-		return
-	}
-	cognitoID = *out.User.Username
-
-	return
-}
-
-func (c *AppClient) DeleteUser(username string) error {
-
-	input := &cognitoidentityprovider.AdminDeleteUserInput{
-		Username:   aws.String(username),
-		UserPoolId: &c.UserPoolID,
-	}
-
-	// Create the CognitoIdentityProvider
-	cip, err := c.NewCIP()
-	if err != nil {
-		return err
-	}
-	_, err = cip.AdminDeleteUser(input)
-
-	return err
 
 }
