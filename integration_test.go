@@ -38,7 +38,7 @@ func TestIntegration(t *testing.T) {
 		test.TestRegisterNewUserEmailPass()
 		test.TestSetUserPassword()
 		test.TestAddUserToGroup()
-
+		test.TestListUsers()
 		time.Sleep(5 * time.Second)
 		test.TestGetUserGroups()
 		time.Sleep(10 * time.Second)
@@ -96,8 +96,49 @@ func (t *IntegrationTests) TestConfirmUser() {
 	assert.Nil(t.Test, err, "Error confirming User")
 }
 
+func (t *IntegrationTests) TestAddUserToGroup() {
+	fmt.Println("4. TestAddUserToGroup")
+	// Setup the credentials from Environment:
+	u, err := envy.MustGet("USERNAME")
+	g, err := envy.MustGet("GROUP")
+	assert.Nil(t.Test, err, "Could not get credentials from .env")
+
+	client, err := NewAppClient(CFG)
+	assert.Nil(t.Test, err, "Error not nil")
+
+	err = client.AddUserToGroup(u, g)
+	assert.Nil(t.Test, err, "Error adding user to group")
+}
+
+func (t *IntegrationTests) TestListUsers() {
+	fmt.Println("5. TestListUsers")
+	// Setup the credentials from Environment:
+
+	client, err := NewAppClient(CFG)
+	assert.Nil(t.Test, err, "Error not nil")
+
+	users, err := client.ListUsers()
+	assert.Nil(t.Test, err, "Error Listing Users")
+	assert.NotNil(t.Test, users, "Error Listing Users")
+}
+
+func (t *IntegrationTests) TestGetUserGroups() {
+	fmt.Println("6. TestGetUserGroups")
+	// Setup the credentials from Environment:
+	u, err := envy.MustGet("USERNAME")
+	g, err := envy.MustGet("GROUP")
+	assert.Nil(t.Test, err, "Could not get credentials from .env")
+
+	client, err := NewAppClient(CFG)
+	assert.Nil(t.Test, err, "Error not nil")
+
+	groups, err := client.GetUserGroups(u)
+	assert.Nil(t.Test, err, "Error adding user to group")
+	assert.True(t.Test, client.InGroup(groups, g), "Group not found")
+}
+
 func (t *IntegrationTests) TestAuthenticateUserPassword() {
-	fmt.Println("6. TestAuthenticateUserPassword")
+	fmt.Println("7. TestAuthenticateUserPassword")
 	// Setup the credentials from Environment:
 	u, err := envy.MustGet("USERNAME")
 	p, err := envy.MustGet("PASSWORD")
@@ -125,37 +166,9 @@ func (t *IntegrationTests) TestAuthenticateUserPassword() {
 		}
 	}
 }
-func (t *IntegrationTests) TestAddUserToGroup() {
-	fmt.Println("4. TestAddUserToGroup")
-	// Setup the credentials from Environment:
-	u, err := envy.MustGet("USERNAME")
-	g, err := envy.MustGet("GROUP")
-	assert.Nil(t.Test, err, "Could not get credentials from .env")
-
-	client, err := NewAppClient(CFG)
-	assert.Nil(t.Test, err, "Error not nil")
-
-	err = client.AddUserToGroup(u, g)
-	assert.Nil(t.Test, err, "Error adding user to group")
-}
-
-func (t *IntegrationTests) TestGetUserGroups() {
-	fmt.Println("5. TestGetUserGroups")
-	// Setup the credentials from Environment:
-	u, err := envy.MustGet("USERNAME")
-	g, err := envy.MustGet("GROUP")
-	assert.Nil(t.Test, err, "Could not get credentials from .env")
-
-	client, err := NewAppClient(CFG)
-	assert.Nil(t.Test, err, "Error not nil")
-
-	groups, err := client.GetUserGroups(u)
-	assert.Nil(t.Test, err, "Error adding user to group")
-	assert.True(t.Test, client.InGroup(groups, g), "Group not found")
-}
 
 func (t *IntegrationTests) TestDeleteUser() {
-	fmt.Println("7. TestDeleteUser")
+	fmt.Println("8. TestDeleteUser")
 	// Setup the credentials from Environment:
 	u, err := envy.MustGet("USERNAME")
 	assert.Nil(t.Test, err, "Could not get credentials from .env")

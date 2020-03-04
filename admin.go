@@ -28,6 +28,26 @@ func (c *AppClient) AddUserToGroup(username, group string) error {
 	return nil
 }
 
+func (c *AppClient) ListUsers() ([]*cognitoidentityprovider.UserType, error) {
+	input := &cognitoidentityprovider.ListUsersInput{
+		UserPoolId: &c.UserPoolID,
+	}
+
+	// Create the CognitoIdentityProvider
+	cip, err := c.NewCIP()
+	if err != nil {
+		return nil, err
+	}
+
+	// Get the groups
+	out, err := cip.ListUsers(input)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return out.Users, err
+}
 func (c *AppClient) GetUserGroups(username string) ([]*cognitoidentityprovider.GroupType, error) {
 	input := &cognitoidentityprovider.AdminListGroupsForUserInput{
 		Username:   aws.String(username),
