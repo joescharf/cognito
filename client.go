@@ -256,7 +256,8 @@ func (c *AppClient) ParseAndVerifyJWT(t string) (*jwt.Token, error) {
 			return nil, errors.New("could not find matching `kid` in well known tokens")
 		}
 		// Build the public RSA key
-		key, err := keys[0].Materialize()
+		var key interface{}
+		err := keys[0].Raw(&key)
 		if err != nil {
 			log.Printf("Failed to create public key: %s", err)
 			return nil, err
