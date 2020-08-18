@@ -11,6 +11,9 @@ builds:
     main: ./cmd/main.go
     env:
       - CGO_ENABLED=0
+    ignore:
+      - goos: darwin
+        goarch: 386
 archives:
   - replacements:
       darwin: Darwin
